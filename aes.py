@@ -121,7 +121,41 @@ class AES(object):
         input_words[3][3] = temp3
 
     def MixColumns(self, input_words):
-        
+        result = []
+        for i in range(0, 4):
+            result[i][0] = self.GFXor('0x02', input_words[0][i]) ^\
+                           self.GFXor('0x03', input_words[1][i]) ^\
+                           input_words[2][i] ^ input_words[3][i]
+            result[i][1] = input_words[0][i] ^\
+                           self.GFXor('0x02', input_words[1][i]) ^\
+                           self.GFXor('0x03', input_words[2][i]) ^\
+                           input_words[3][i]
+            result[i][2] = input_words[0][i] ^\
+                           input_words[1][i] ^\
+                           self.GFXor('0x02', input_words[2][i]) ^\
+                           self.GFXor('0x03', input_words[3][i])
+            result[i][3] = self.GFXor('0x03', input_words[0][i]) ^\
+                           input_words[1][i] ^\
+                           input_words[2][i] ^\
+                           self.GFXor('0x02', input_words[3][i])
+
+    def GFXor(self, first, second):
+        result = 0
+        a = int(first, 0)
+        b = int(second, 0)
+    
+        while a and b:
+            if b & 0x1:
+                result = result ^ a
+
+            if a & 0x80:
+                a = (a << 1) ^ 0x11b
+            else: 
+                a = a << 1
+            
+            b = b >> 1
+
+        return result
 
     def KeyExpansionEncrypt(self, key):
         key_exp = []
