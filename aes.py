@@ -1,5 +1,11 @@
 # based on: https://csrc.nist.gov/csrc/media/publications/fips/197/final/documents/fips-197.pdf
 
+import struct
+import copy
+
+Nr = 10
+Nk = 4
+
 class AES(object):
     S = [ 0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
           0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
@@ -33,8 +39,148 @@ class AES(object):
           0x60, 0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f, 0x93, 0xc9, 0x9c, 0xef,
           0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61,
           0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d ]
+    
+    Rcon = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36] 
+    
     def __init__(self, key):
-        if len(key) not 16:
+        if len(key) is not 16:
             raise ValueError("Invlaid key size")
+
+        self.key = key
+
+        print key
+
+        self.key_unpacked = []
+
+        for i in range(0, len(key), 4):
+            word = []
+            for j in range(i, i + 4):
+                word.append(hex(ord(key[j])))
+            self.key_unpacked.append(word)
+
+        # self.key_unpacked = [['0x2b', '0x7e', '0x15', '0x16'],
+        #                      ['0x28', '0xae', '0xd2', '0xa6'],
+        #                      ['0xab', '0xf7', '0x15', '0x88'],
+        #                      ['0x09', '0xcf', '0x4f', '0x3c']]
+
+        self.key_exp_encr = self.KeyExpansionEncrypt(self.key_unpacked)
+
+    self encrypt(self, plaintext):
+        if len(plaintext) is not 16:
+            raise ValueError("Invalid plaintext file!")
+
+        self.result = copy.deepcopy(self.plaintext_unpacked)
+
+        for i in range(0, len(plaintext), 4):
+            word = []
+            for j in range(i, i + 4):
+                word.append(hex(ord(key[j])))
+            self.key_unpacked.append(word)
+
+        # add first round key
+        self.AddRoundKeyEnc(self.result, 0)
+
+        for i in range (1, Nr):
+            #substitute bytes
+            for i in range (0, 4):
+                self.result[i] = self.SubWord(self.result[i])
+            #shift rows
+            self.ShiftRows(self, self.result)
+            #mix columns
+            self.MixColumns(self.result)
+            self.AddRoundKeyEnc(self.result, i)
+
+        for i in range (0, 4):
+            self.result[i] = self.SubWord(self.result[i])
+        self.ShiftRows(self, self.result)
+        self.AddRoundKeyEnc(self.result, 10)
+            
+        return self.result
+
+    self ShiftRows(self, input_words):
+        #second row
+        temp = input_words[1][0]
+        input_words[1][0] = input_words[1][1]
+        input_words[1][1] = input_words[1][2]
+        input_words[1][2] = input_words[1][3]
+        input_words[1][3] = temp
+        #third row
+        temp = input_words[2][0]
+        temp2 = input_words[2][1]
+        input_words[2][0] = input_words[2][2]
+        input_words[2][1] = input_words[2][3]
+        input_words[2][2] = temp
+        input_words[2][3] = temp2
+        #fourth row
+        temp = input_words[3][0]
+        temp2 = input_words[3][1]
+        temp3 = input_words[3][2]
+        input_words[3][0] = input_words[3][3]
+        input_words[3][1] = temp
+        input_words[3][2] = temp2
+        input_words[3][3] = temp3
+
+    def MixColumns(self, input_words):
+        
+
+    def KeyExpansionEncrypt(self, key):
+        key_exp = []
+
+        i = 0
+        while (i < Nk):
+            key_exp.append(copy.deepcopy(key[i]))
+            i = i + 1
+
+        i = Nk
+        while (i < 4 * (Nr + 1)):
+            temp = []
+            temp = copy.deepcopy(key_exp[i - 1])
+            if i % Nk == 0:
+                temp = self.RotWord(temp)
+                temp = self.SubWord(temp)
+                temp = self.xorRcon(temp, i / Nk - 1)
+            result = self.xorBeforeAddToEncrKeys(temp, copy.deepcopy(key_exp[i - Nk]))
+            key_exp.append(copy.deepcopy(result))
+            i = i + 1
+
+        return key_exp
+
+    def RotWord(self, word):
+        temp = word[0]
+        word[0] = word[1]
+        word[1] = word[2]
+        word[2] = word[3]
+        word[3] = temp
+        return word
+
+    def SubWord(self, word):
+        for i in range(0, len(word)):
+            word[i] = hex(self.S[int(word[i], 0)])
+        return word
+
+    def xorRcon(self, word, elem):
+        word[0] = hex((int(word[0], 0) ^ (self.Rcon[elem]) & 0xFF))
+        for i in range(1, len(word)):
+            word[i] = hex((int(word[i], 0) ^ 0x00)  & 0xFF)
+        return word
+
+    def xorBeforeAddToEncrKeys(self, word, temp):
+        result = []
+        for i in range(0, len(word)):
+            result.append((hex(int(word[i], 0) ^ int(temp[i], 0) & 0xFF)))
+        return result
+
+    def ASCIItoHex(self, string):
+        return ''.join( [ "%02X " % ord( x ) for x in string ] ).strip()
+
+    def HexToByte(self, hexStr):
+        bytes = []
+
+        hexStr = ''.join( hexStr.split(" ") )
+
+        for i in range(0, len(hexStr), 2):
+            bytes.append( chr( int (hexStr[i:i+2], 16 ) ) )
+
+        return ''.join( bytes )
 
         
