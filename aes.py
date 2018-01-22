@@ -101,6 +101,42 @@ class AES(object):
           
         return self.result
 
+    def DecryptAES(self, cyphertext):
+        pass
+    
+    def InvShiftRows(self, input_words):
+        #second row
+        temp = input_words[1][3]
+        input_words[1][3] = input_words[1][2]
+        input_words[1][2] = input_words[1][1]
+        input_words[1][1] = input_words[1][0]
+        input_words[1][0] = temp
+        #third row
+        temp = input_words[2][3]
+        temp2 = input_words[2][2]
+        input_words[2][3] = input_words[2][1]
+        input_words[2][2] = input_words[2][0]
+        input_words[2][1] = temp
+        input_words[2][0] = temp2
+        #fourth row
+        temp = input_words[3][3]
+        temp2 = input_words[3][2]
+        temp3 = input_words[3][1]
+        input_words[3][3] = input_words[3][0]
+        input_words[3][2] = temp
+        input_words[3][1] = temp2
+        input_words[3][0] = temp3
+
+        return input_words
+
+    def InvSubBytes(self, word):
+        for i in range(0, len(word)):
+            word[i] = hex(self.Si[int(word[i], 0)])
+        return word
+
+    def InvMixColumns(self, input_words):
+        pass
+
     def AddRoundKeyEnc(self, input_array, round_no):
         result_array = []
         for i in range(0, 4):
