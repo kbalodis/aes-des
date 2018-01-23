@@ -2,6 +2,7 @@
 
 import struct
 import copy
+import numpy
 
 Nr = 10
 Nk = 4
@@ -48,8 +49,6 @@ class AES(object):
 
         self.key = key
 
-        print key
-
         self.key_unpacked = []
 
         for i in range(0, len(key), 4):
@@ -63,11 +62,31 @@ class AES(object):
         #                      ['0xab', '0xf7', '0x15', '0x88'],
         #                      ['0x09', '0xcf', '0x4f', '0x3c']]
 
-        self.key_exp_encr = self.KeyExpansionEncrypt(self.key_unpacked)
+        # self.key_unpacked = [['0x00', '0x1', '0x2', '0x3'],
+        #                      ['0x4', '0x5', '0x6', '0x7'],
+        #                      ['0x8', '0x9', '0x1', '0xb'],
+        #                      ['0xc', '0xd', '0xe', '0xf']]
 
-        # print self.key_exp_encr
+        self.key_exp_encr = self.KeyExpansionEncrypt(self.key_unpacked)
+        print self.key_exp_encr
 
         self.plaintext_unpacked = []
+
+        self.cyphertext = []
+        # self.cyphertext = [['0x69', '0xc4', '0xe0', '0xd8'],
+        #         ['0x6a', '0x7b', '0x04', '0x30'],
+        #         ['0xd8', '0xcd', '0xb7', '0x80'],
+        #         ['0x70', '0xb4', '0xc5', '0x5a']]
+
+        self.decyphered = []
+
+    def RowsToColumns(self, matrix):
+        result = copy.deepcopy(matrix)
+        for j in range(0, 4):
+            for i in range(0, 4):
+                result[j][i] = copy.deepcopy(matrix[i][j])
+
+        return result
 
     def EncryptAES(self, plaintext):
         if len(plaintext) is not 16:
@@ -79,30 +98,82 @@ class AES(object):
                 word.append(hex(ord(plaintext[j])))
             self.plaintext_unpacked.append(word)
 
+        # self.plaintext_unpacked = [['0x32', '0x43', '0xf6', '0xa8'],
+        #                            ['0x88', '0x5a', '0x30', '0x8d'],
+        #                            ['0x31', '0x31', '0x98', '0xa2'],
+        #                            ['0xe0', '0x37', '0x07', '0x34']]
+        
         self.result = copy.deepcopy(self.plaintext_unpacked)
 
-        # add first round key
         self.result = self.AddRoundKeyEnc(self.result, 0)
+        self.result = self.RowsToColumns(self.result)
 
         for i in range (1, Nr):
             #substitute bytes
-            for i in range (0, 4):
-                self.result[i] = self.SubWord(self.result[i])
+            for j in range (0, 4):
+                self.result[j] = self.SubWord(self.result[j])
             #shift rows
             self.result = self.ShiftRows(self.result)
             #mix columns
             self.result = self.MixColumns(self.result)
             self.result = self.AddRoundKeyEnc(self.result, i)
+            self.result = self.RowsToColumns(self.result)
 
         for i in range (0, 4):
             self.result[i] = self.SubWord(self.result[i])
+        # print self.result
         self.result = self.ShiftRows(self.result)
+        self.result = self.RowsToColumns(self.result)
         self.result = self.AddRoundKeyEnc(self.result, 10)
-          
+        self.result = self.RowsToColumns(self.result)
+
+        # print self.result
+        self.cyphertext = copy.deepcopy(self.result)
+
         return self.result
 
     def DecryptAES(self, cyphertext):
-        pass
+        # self.cyphertext = [['0x69', '0xc4', '0xe0', '0xd8'],
+        #                ['0x6a', '0x7b', '0x04', '0x30'],
+        #                ['0xd8', '0xcd', '0xb7', '0x80'],
+        #                ['0x70', '0xb4', '0xc5', '0x5a']]
+                
+        self.result = copy.deepcopy(self.cyphertext)
+        print self.result
+
+        # print cyphertext
+        # add first round key
+        self.result = self.RowsToColumns(self.result)
+        self.result = self.AddRoundKeyEnc(self.result, 10)
+        print self.result
+        self.result = self.RowsToColumns(self.result)
+
+        j = Nr-1
+
+        for i in range (0, Nr-1):
+            # print j
+            #shift rows
+            self.result = self.InvShiftRows(self.result)
+            #substitute bytes
+            for k in range (0, 4):
+                self.result[k] = self.InvSubBytes(self.result[k])
+            self.result = self.AddRoundKeyEnc(self.result, j)
+            self.result = self.RowsToColumns(self.result)
+            #mix columns
+            self.result = self.InvMixColumns(self.result)
+            j = j - 1
+
+        self.result = self.InvShiftRows(self.result)
+        for i in range (0, 4):
+            self.result[i] = self.InvSubBytes(self.result[i])
+        # self.result = self.RowsToColumns(self.result)
+        # self.result = self.RowsToColumns(self.result)
+        self.result = self.AddRoundKeyEnc(self.result, 0)
+        # self.result = self.RowsToColumns(self.result)
+
+        self.decyphered = copy.deepcopy(self.result)
+
+        return self.result
     
     def InvShiftRows(self, input_words):
         #second row
@@ -135,7 +206,37 @@ class AES(object):
         return word
 
     def InvMixColumns(self, input_words):
-        pass
+        result = []
+        # print input_words
+        for i in range(0, 4):
+            temp = []
+            temp.append(hex(self.GFXor('0x0e', int(input_words[0][i], 0)) ^\
+                            self.GFXor('0x0b', int(input_words[1][i], 0)) ^\
+                            self.GFXor('0x0d', int(input_words[2][i], 0)) ^\
+                            self.GFXor('0x09', int(input_words[3][i], 0))
+                            )
+                        )
+            temp.append(hex(self.GFXor('0x09', int(input_words[0][i], 0)) ^\
+                            self.GFXor('0x0e', int(input_words[1][i], 0)) ^\
+                            self.GFXor('0x0b', int(input_words[2][i], 0)) ^\
+                            self.GFXor('0x0d', int(input_words[3][i], 0))
+                            )
+                        )
+            temp.append(hex(self.GFXor('0x0d', int(input_words[0][i], 0)) ^\
+                            self.GFXor('0x09', int(input_words[1][i], 0)) ^\
+                            self.GFXor('0x0e', int(input_words[2][i], 0)) ^\
+                            self.GFXor('0x0b', int(input_words[3][i], 0))
+                            )
+                        )
+            temp.append(hex(self.GFXor('0x0b', int(input_words[0][i], 0)) ^\
+                            self.GFXor('0x0d', int(input_words[1][i], 0)) ^\
+                            self.GFXor('0x09', int(input_words[2][i], 0)) ^\
+                            self.GFXor('0x0e', int(input_words[3][i], 0))
+                            )
+                        )
+            result.append(temp)
+
+        return result
 
     def AddRoundKeyEnc(self, input_array, round_no):
         result_array = []
@@ -151,7 +252,7 @@ class AES(object):
                             int(self.key_exp_encr[4 * round_no + i][3], 0)))
             result_array.append(copy.deepcopy(temp))
         
-        # print result_array
+        print result_array
         return result_array
 
     def ShiftRows(self, input_words):
@@ -185,21 +286,21 @@ class AES(object):
         for i in range(0, 4):
             temp = []
             temp.append(hex(self.GFXor('0x02', int(input_words[0][i], 0)) ^\
-                        self.GFXor('0x03', int(input_words[1][i], 0)) ^\
-                        int(input_words[2][i], 0) ^\
-                        int(input_words[3][i], 0)))
+                            self.GFXor('0x03', int(input_words[1][i], 0)) ^\
+                            int(input_words[2][i], 0) ^\
+                            int(input_words[3][i], 0)))
             temp.append(hex(int(input_words[0][i], 0)  ^\
-                        self.GFXor('0x02', int(input_words[1][i], 0)) ^\
-                        self.GFXor('0x03', int(input_words[2][i], 0)) ^\
-                        int(input_words[3][i], 0)))
+                            self.GFXor('0x02', int(input_words[1][i], 0)) ^\
+                            self.GFXor('0x03', int(input_words[2][i], 0)) ^\
+                            int(input_words[3][i], 0)))
             temp.append(hex(int(input_words[0][i], 0)  ^\
-                        int(input_words[1][i], 0) ^\
-                        self.GFXor('0x02', int(input_words[2][i], 0)) ^\
-                        self.GFXor('0x03', int(input_words[3][i], 0))))
+                            int(input_words[1][i], 0) ^\
+                            self.GFXor('0x02', int(input_words[2][i], 0)) ^\
+                            self.GFXor('0x03', int(input_words[3][i], 0))))
             temp.append(hex(self.GFXor('0x03', int(input_words[0][i], 0)) ^\
-                        int(input_words[1][i], 0) ^\
-                        int(input_words[2][i], 0) ^\
-                        self.GFXor('0x02', int(input_words[3][i], 0))))
+                            int(input_words[1][i], 0) ^\
+                            int(input_words[2][i], 0) ^\
+                            self.GFXor('0x02', int(input_words[3][i], 0))))
             result.append(temp)
 
         return result
