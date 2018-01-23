@@ -68,7 +68,7 @@ class AES(object):
         #                      ['0xc', '0xd', '0xe', '0xf']]
 
         self.key_exp_encr = self.KeyExpansionEncrypt(self.key_unpacked)
-        print self.key_exp_encr
+        # print self.key_exp_encr
 
         self.plaintext_unpacked = []
 
