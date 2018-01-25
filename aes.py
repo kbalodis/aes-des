@@ -57,17 +57,17 @@ class AES(object):
                 word.append(hex(ord(key[j])))
             self.key_unpacked.append(word)
 
-        self.key_unpacked = [['0x2b', '0x7e', '0x15', '0x16'],
-                             ['0x28', '0xae', '0xd2', '0xa6'],
-                             ['0xab', '0xf7', '0x15', '0x88'],
-                             ['0x09', '0xcf', '0x4f', '0x3c']]
+        # self.key_unpacked = [['0x2b', '0x7e', '0x15', '0x16'],
+        #                      ['0x28', '0xae', '0xd2', '0xa6'],
+        #                      ['0xab', '0xf7', '0x15', '0x88'],
+        #                      ['0x09', '0xcf', '0x4f', '0x3c']]
 
         # self.key_unpacked = [['0x00', '0x1', '0x2', '0x3'],
         #                      ['0x4', '0x5', '0x6', '0x7'],
-        #                      ['0x8', '0x9', '0x1', '0xb'],
+        #                      ['0x8', '0x9', '0xa', '0xb'],
         #                      ['0xc', '0xd', '0xe', '0xf']]
 
-        self.key_unpacked = self.RowsToColumns(self.key_unpacked)
+        # self.key_unpacked = self.RowsToColumns(self.key_unpacked)
 
         self.key_exp_encr = self.KeyExpansionEncrypt(self.key_unpacked)
         # print self.key_exp_encr
@@ -100,54 +100,60 @@ class AES(object):
                 word.append(hex(ord(plaintext[j])))
             self.plaintext_unpacked.append(word)
 
-        self.plaintext_unpacked = [['0x32', '0x43', '0xf6', '0xa8'],
-                                   ['0x88', '0x5a', '0x30', '0x8d'],
-                                   ['0x31', '0x31', '0x98', '0xa2'],
-                                   ['0xe0', '0x37', '0x07', '0x34']]
-        self.plaintext_unpacked = self.RowsToColumns(self.plaintext_unpacked)
+        # self.plaintext_unpacked = [['0x32', '0x43', '0xf6', '0xa8'],
+        #                            ['0x88', '0x5a', '0x30', '0x8d'],
+        #                            ['0x31', '0x31', '0x98', '0xa2'],
+        #                            ['0xe0', '0x37', '0x07', '0x34']]
+        # self.plaintext_unpacked = self.RowsToColumns(self.plaintext_unpacked)
+        # self.plaintext_unpacked = [['0x00', '0x11', '0x22', '0x33'],
+        #                            ['0x44', '0x55', '0x66', '0x77'],
+        #                            ['0x88', '0x99', '0xaa', '0xbb'],
+        #                            ['0xcc', '0xdd', '0xee', '0xff']]
 
         self.result = copy.deepcopy(self.plaintext_unpacked)
 
         self.result = self.AddRoundKeyEnc(self.result, 0)
-        # self.result = self.RowsToColumns(self.result)
-        print self.result
+        self.result = self.RowsToColumns(self.result)
+        # print self.result
 
         for i in range (1, Nr):
             #substitute bytes
             for j in range (0, 4):
                 self.result[j] = self.SubWord(self.result[j])
-            print i, "sub", self.result
+            # print i, "sub", self.result
             #shift rows
             self.result = self.ShiftRows(self.result)
-            print i, "shift", self.result
+            # print i, "shift", self.result
             #mix columns
             self.result = self.MixColumns(self.result)
-            self.result = self.RowsToColumns(self.result)
-            print i, "mix", self.result
-            self.result = self.AddRoundKeyEnc(self.result, i)
             # self.result = self.RowsToColumns(self.result)
-            print i, "add", self.result
+            # print i, "mix", self.result
+            self.result = self.AddRoundKeyEnc(self.result, i)
+            self.result = self.RowsToColumns(self.result)
+            # print i, "add", self.result
 
         for i in range (0, 4):
             self.result[i] = self.SubWord(self.result[i])
         # print self.result
         self.result = self.ShiftRows(self.result)
-        # self.result = self.RowsToColumns(self.result)
+        self.result = self.RowsToColumns(self.result)
         self.result = self.AddRoundKeyEnc(self.result, 10)
         # self.result = self.RowsToColumns(self.result)
 
         # print self.result
         self.cyphertext = copy.deepcopy(self.result)
 
-        # return i, self.result
+        return self.result
 
     def DecryptAES(self, cyphertext):
         # self.cyphertext = [['0x69', '0xc4', '0xe0', '0xd8'],
         #                ['0x6a', '0x7b', '0x04', '0x30'],
         #                ['0xd8', '0xcd', '0xb7', '0x80'],
         #                ['0x70', '0xb4', '0xc5', '0x5a']]
-                
-        self.result = copy.deepcopy(self.cyphertext)
+
+        # print cyphertext
+
+        self.result = copy.deepcopy(cyphertext)
         # print self.result
 
         # print cyphertext
@@ -155,35 +161,43 @@ class AES(object):
         # self.result = self.RowsToColumns(self.result)
         self.result = self.AddRoundKeyEnc(self.result, 10)
         # print self.result
-        # self.result = self.RowsToColumns(self.result) #??
+        self.result = self.RowsToColumns(self.result) 
         # print self.result
         j = Nr-1
 
         for i in range (0, Nr-1):
             # print j
             #shift rows
-            self.result = self.InvShiftRows(self.result) 
+            self.result = self.InvShiftRows(self.result)
+            self.result = self.RowsToColumns(self.result)
             # print self.result
             # break
             #substitute bytes
             for k in range (0, 4):
                 self.result[k] = self.InvSubBytes(self.result[k])
             # self.result = self.RowsToColumns(self.result)
+            # print self.result
+            # break
             self.result = self.AddRoundKeyEnc(self.result, j)
-            # self.result = self.RowsToColumns(self.result)
+            # print self.result
+            # break
+            self.result = self.RowsToColumns(self.result)
             #mix columns
             self.result = self.InvMixColumns(self.result)
+            # print j, self.result
+            self.result = self.RowsToColumns(self.result)
+            # break
             j = j - 1
 
+        # self.res
+        # print self.result
         # self.result = self.RowsToColumns(self.result)
         self.result = self.InvShiftRows(self.result)
+        self.result = self.RowsToColumns(self.result)
+        # print self.result
         for i in range (0, 4):
             self.result[i] = self.InvSubBytes(self.result[i])
-        # self.result = self.RowsToColumns(self.result)
-        # self.result = self.RowsToColumns(self.result)
         self.result = self.AddRoundKeyEnc(self.result, 0)
-        # self.result = self.RowsToColumns(self.result)
-
         self.decyphered = copy.deepcopy(self.result)
 
         return self.result
@@ -220,7 +234,6 @@ class AES(object):
 
     def InvMixColumns(self, input_words):
         result = []
-        # print input_words
         for i in range(0, 4):
             temp = []
             temp.append(hex(self.GFXor('0x0e', int(input_words[0][i], 0)) ^\
@@ -265,7 +278,6 @@ class AES(object):
                             int(self.key_exp_encr[4 * round_no + i][3], 0)))
             result_array.append(copy.deepcopy(temp))
         
-        # print result_array
         return result_array
 
     def ShiftRows(self, input_words):
@@ -295,7 +307,6 @@ class AES(object):
 
     def MixColumns(self, input_words):
         result = []
-        # print input_words
         for i in range(0, 4):
             temp = []
             temp.append(hex(self.GFXor('0x02', int(input_words[0][i], 0)) ^\
@@ -353,7 +364,6 @@ class AES(object):
                 temp = self.SubWord(temp)
                 temp = self.xorRcon(temp, i / Nk - 1)
             result = self.xorBeforeAddToEncrKeys(temp, copy.deepcopy(key_exp[i - Nk]))
-            result = self.RowsToColumns(result)
             key_exp.append(copy.deepcopy(result))
             i = i + 1
 
@@ -383,18 +393,5 @@ class AES(object):
         for i in range(0, len(word)):
             result.append((hex(int(word[i], 0) ^ int(temp[i], 0) & 0xFF)))
         return result
-
-    def ASCIItoHex(self, string):
-        return ''.join( [ "%02X " % ord( x ) for x in string ] ).strip()
-
-    def HexToByte(self, hexStr):
-        bytes = []
-
-        hexStr = ''.join( hexStr.split(" ") )
-
-        for i in range(0, len(hexStr), 2):
-            bytes.append( chr( int (hexStr[i:i+2], 16 ) ) )
-
-        return ''.join( bytes )
 
         

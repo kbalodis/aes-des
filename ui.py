@@ -13,8 +13,8 @@ import binascii
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from pyDes import *
-import aes as pyaes
+import des as DES
+from aes import AES
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -64,18 +64,18 @@ class Ui_MainWindow(object):
         self.lineEdit_key.setDisabled(True)
         self.gridLayout.addWidget(self.lineEdit_key, 0, 1, 1, 1)
         
-        self.label_length = QtWidgets.QLabel(self.widget)
-        self.label_length.setObjectName("label_length")
-        self.gridLayout.addWidget(self.label_length, 0, 2, 1, 1)
-        self.label_length.setDisabled(True)
+        # self.label_length = QtWidgets.QLabel(self.widget)
+        # self.label_length.setObjectName("label_length")
+        # self.gridLayout.addWidget(self.label_length, 0, 2, 1, 1)
+        # self.label_length.setDisabled(True)
         
-        self.comboBox = QtWidgets.QComboBox(self.widget)
-        self.comboBox.setObjectName("combo")
-        self.comboBox.addItem("16")
-        self.comboBox.addItem("24")
-        self.comboBox.addItem("32")
-        self.gridLayout.addWidget(self.comboBox, 0, 3, 1, 1)
-        self.comboBox.setDisabled(True)
+        # self.comboBox = QtWidgets.QComboBox(self.widget)
+        # self.comboBox.setObjectName("combo")
+        # self.comboBox.addItem("16")
+        # self.comboBox.addItem("24")
+        # self.comboBox.addItem("32")
+        # self.gridLayout.addWidget(self.comboBox, 0, 3, 1, 1)
+        # self.comboBox.setDisabled(True)
 
         self.pushButton = QtWidgets.QPushButton(self.widget)
         self.pushButton.setObjectName("pushButton")
@@ -140,16 +140,16 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-        self.des = des(b"boogyman", CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
+        # self.des = des(b"boogyman", CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=PAD_PKCS5)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "AES and DES"))
         self.label.setText(_translate("MainWindow", "AES and DES"))
-        self.radioButton_AES.setText(_translate("MainWindow", "AES (CTR)"))
-        self.radioButton_DES.setText(_translate("MainWindow", "DES (CBC)"))
+        self.radioButton_AES.setText(_translate("MainWindow", "AES"))
+        self.radioButton_DES.setText(_translate("MainWindow", "DES"))
         self.label_2.setText(_translate("MainWindow", "Key:"))
-        self.label_length.setText(_translate("MainWindow", "Length:"))
+        # self.label_length.setText(_translate("MainWindow", "Length:"))
         self.pushButton.setText(_translate("MainWindow", "Generate"))
         self.label_3.setText(_translate("MainWindow", "Plaintext:"))
         self.label_4.setText(_translate("MainWindow", "Cyphertext:"))
@@ -157,17 +157,7 @@ class Ui_MainWindow(object):
         self.pushButton_3.setText(_translate("MainWindow", "Decrypt"))
 
 
-    def HexToByte(self, hexStr):
-        """
-        Convert a string hex byte values into a byte string. The Hex Byte values may
-        or may not be space separated.
-        """
-        # The list comprehension implementation is fractionally slower in this case    
-        #
-        #    hexStr = ''.join( hexStr.split(" ") )
-        #    return ''.join( ["%c" % chr( int ( hexStr[i:i+2],16 ) ) \
-        #                                   for i in range(0, len( hexStr ), 2) ] )
-    
+    def HexToByte(self, hexStr):    
         bytes = []
 
         hexStr = ''.join( hexStr.split(" ") )
@@ -274,18 +264,19 @@ class Ui_MainWindow(object):
                 self.pushButton_3.setDisabled(False)
 
     def generateAESkey(self):
-        if self.comboBox.currentText() == "16":
-            rand_string = ''.join(random.choice(string.letters + string.digits + string.punctuation) for i in range(16))
-            self.lineEdit_key.setText(rand_string)
-            self.key = self.lineEdit_key.text().encode('latin-1')
-        if self.comboBox.currentText() == "24":
-            rand_string = ''.join(random.choice(string.letters + string.digits + string.punctuation) for i in range(24))
-            self.lineEdit_key.setText(rand_string)
-            self.key = self.lineEdit_key.text().encode('latin-1')
-        if self.comboBox.currentText() == "32":
-            rand_string = ''.join(random.choice(string.letters + string.digits + string.punctuation) for i in range(32))
-            self.lineEdit_key.setText(rand_string)
-            self.key = self.lineEdit_key.text().encode('latin-1')
+        # if self.comboBox.currentText() == "16":
+        rand_string = ''.join(random.choice(string.letters + string.digits + string.punctuation) for i in range(16))
+        self.lineEdit_key.setText(rand_string)
+        self.key = self.lineEdit_key.text().encode('latin-1')
+        self.keyChangedAES()
+        # if self.comboBox.currentText() == "24":
+        #     rand_string = ''.join(random.choice(string.letters + string.digits + string.punctuation) for i in range(24))
+        #     self.lineEdit_key.setText(rand_string)
+        #     self.key = self.lineEdit_key.text().encode('latin-1')
+        # if self.comboBox.currentText() == "32":
+        #     rand_string = ''.join(random.choice(string.letters + string.digits + string.punctuation) for i in range(32))
+        #     self.lineEdit_key.setText(rand_string)
+        #     self.key = self.lineEdit_key.text().encode('latin-1')
 
     def encryptAES(self):
         try:
@@ -293,21 +284,63 @@ class Ui_MainWindow(object):
         except:
             self.showdialog()
         else:
-            aes = pyaes.AESModeOfOperationCTR(self.key)
-            self.ciphertext = aes.encrypt(self.lineEdit_plaintext.text().encode('latin-1'))
-            self.lineEdit_cyphertext.setText(''.join( [ "%02X " % ord( x ) for x in self.ciphertext ] ).strip())
+            aes = AES(self.lineEdit_key.text().encode('latin-1'))
+            self.ciphertext = aes.EncryptAES(self.lineEdit_plaintext.text().encode('latin-1'))
+            # self.lineEdit_cyphertext.setText(''.join( [ "%02X " % ord( x ) for x in self.ciphertext ] ).strip())
+            cyphertext = ''
+            for item in self.ciphertext:
+                for i in range(0, 4):
+                    tmp = item[i]
+                    cyphertext = cyphertext + str(tmp)    
+            self.lineEdit_cyphertext.setText(cyphertext)
 
     def decryptAES(self):
-        aes = pyaes.AESModeOfOperationCTR(self.key)
-        self.decrypted = aes.decrypt(self.HexToByte(self.lineEdit_cyphertext.text()))
-        self.lineEdit_plaintext.setText(self.decrypted)
+        aes = AES(self.key)
+        ciphertext = binascii.b2a(self.lineEdit_cyphertext.text())#.encode('latin-1')
+        ciphertext_unpacked = []
+        print(ciphertext)
+        for i in range(0, len(ciphertext), 4):
+            word = []
+            for j in range(i, i + 4):
+                word.append(hex(ord(ciphertext[j])))
+            ciphertext_unpacked.append(word)
+        self.decrypted = aes.DecryptAES(ciphertext_unpacked)
+        deciphered = ''
+        for item in self.decrypted:
+            for i in range(0, 4):
+                tmp = item[i]
+                deciphered = deciphered + str(tmp)    
+
+        self.lineEdit_plaintext.setText(deciphered)
 
     def keyChangedAES(self):
-        self.key = self.lineEdit_key.text().encode('latin-1')
+        if len(self.lineEdit_key.text()) == 16 and\
+           len(self.lineEdit_plaintext.text()) == 16:
+            self.pushButton_encrypt.setEnabled(True)
+            if len(self.lineEdit_cyphertext.text()) != 0:
+                self.pushButton_3.setEnabled(True)
+                self.key = self.lineEdit_key.text().encode('latin-1')
+            else:
+                self.pushButton_3.setEnabled(False)
+        else:
+            self.pushButton_encrypt.setEnabled(False)
+            self.pushButton_3.setEnabled(False)
+
+    def plaintextChangedAES(self):
+        if len(self.lineEdit_plaintext.text()) == 16:
+            self.pushButton_encrypt.setEnabled(True)
+            if len(self.lineEdit_cyphertext.text()) != 0:
+                self.pushButton_3.setEnabled(True)
+                self.key = self.lineEdit_key.text().encode('latin-1')
+            else:
+                self.pushButton_3.setEnabled(False)
+        else:
+            self.pushButton_encrypt.setEnabled(False)
+            self.pushButton_3.setEnabled(False)
 
     def cyphertextChangedAES(self):
-        if len(self.lineEdit_cyphertext.text()) != 0:
-            self.keyLengthChangedAES()
+        if len(self.lineEdit_cyphertext.text()) != 16:
+            self.keyChangedAES()
         else:
             self.pushButton_3.setEnabled(False)
 
@@ -374,8 +407,15 @@ class Ui_MainWindow(object):
             self.lineEdit_key.disconnect()
         except:
             pass
-        self.lineEdit_key.textChanged.connect(functools.partial(self.keyLengthChangedAES))
+        self.lineEdit_key.textChanged.connect(functools.partial(self.keyChangedAES))
         self.lineEdit_key.clear()
+
+        try:
+            self.lineEdit_plaintext.disconnect()
+        except:
+            pass
+        self.lineEdit_plaintext.textChanged.connect(functools.partial(self.plaintextChangedAES))
+        self.lineEdit_plaintext.clear()
 
         try:
             self.lineEdit_cyphertext.disconnect()
@@ -388,21 +428,21 @@ class Ui_MainWindow(object):
         self.lineEdit_plaintext.setEnabled(True)
         self.lineEdit_plaintext.clear()
 
-        self.label_length.setDisabled(False)
-        self.comboBox.setDisabled(False)
+        # self.label_length.setDisabled(False)/
+        # self.comboBox.setDisabled(False)
 
-        try:
-            self.comboBox.disconnect()
-        except:
-            pass
-        self.comboBox.activated.connect(functools.partial(self.keyLengthChangedAES))
+        # try:
+        #     self.comboBox.disconnect()
+        # except:
+        #     pass
+        # self.comboBox.activated.connect(functools.partial(self.keyLengthChangedAES))
 
-        if len(self.lineEdit_key.text()) != 8:
+        if len(self.lineEdit_key.text()) != 16:
             self.pushButton_encrypt.setDisabled(True)
             self.pushButton_3.setDisabled(True)
         else:
             self.pushButton_encrypt.setDisabled(False)
-            if len(self.lineEdit_cyphertext.text()) != 0:
+            if len(self.lineEdit_cyphertext.text()) != 16:
                 self.pushButton_3.setDisabled(False)
 
     def showdialog(self):
