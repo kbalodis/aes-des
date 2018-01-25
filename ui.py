@@ -15,6 +15,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 import des as DES
 from aes import AES
+import codecs
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -161,6 +162,7 @@ class Ui_MainWindow(object):
         bytes = []
 
         hexStr = ''.join( hexStr.split(" ") )
+        hexStr = ''.join( hexStr.split("0x"))
 
         for i in range(0, len(hexStr), 2):
             bytes.append( chr( int (hexStr[i:i+2], 16 ) ) )
@@ -290,38 +292,59 @@ class Ui_MainWindow(object):
             cyphertext = ''
             for item in self.ciphertext:
                 for i in range(0, 4):
-                    tmp = item[i]
-                    cyphertext = cyphertext + str(tmp)    
+                    tmp = item[i]#.strip("0x")
+                    # tmp = int(tmp, 16)
+                    # print tmp
+                    # tmp = unichr(tmp)
+                    # print type(tmp), tmp
+                    cyphertext = cyphertext + tmp + " "#.encode("latin-1")
             self.lineEdit_cyphertext.setText(cyphertext)
 
     def decryptAES(self):
         aes = AES(self.key)
-        ciphertext = binascii.b2a(self.lineEdit_cyphertext.text())#.encode('latin-1')
+        # ciphertext = binascii.b2a(self.lineEdit_cyphertext.text())#.encode('latin-1')
+        # print ((self.lineEdit_cyphertext.text().encode('utf-8')))
+        cyphertext = self.lineEdit_cyphertext.text().split()
         ciphertext_unpacked = []
-        print(ciphertext)
-        for i in range(0, len(ciphertext), 4):
+        for i in range(0, 16, 4):
             word = []
-            for j in range(i, i + 4):
-                word.append(hex(ord(ciphertext[j])))
+            for j in range(i, i+4):
+                word.append(cyphertext[j].encode("utf-8"))
             ciphertext_unpacked.append(word)
+        
+        # print(ciphertext_unpacked)
+        # for i in range(0, len(ciphertext), 4):
+        #     word = []
+        #     for j in range(i, i + 4):
+        #         word.append(hex(ord(ciphertext[j])))
+        #     ciphertext_unpacked.append(word)
         self.decrypted = aes.DecryptAES(ciphertext_unpacked)
+        print self.decrypted
         deciphered = ''
+        # for item in self.decrypted:
+        #     for i in range(0, 4):
+        #         tmp = item[i]
+        #         deciphered = deciphered + str(tmp)    
         for item in self.decrypted:
             for i in range(0, 4):
-                tmp = item[i]
-                deciphered = deciphered + str(tmp)    
+                tmp = item[i].replace("0x", "")
+                tmp = int(tmp, 16)
+                # print tmp
+                tmp = unichr(tmp)
+                # print type(tmp), tmp
+                deciphered = deciphered + tmp.encode("latin-1")
 
         self.lineEdit_plaintext.setText(deciphered)
 
     def keyChangedAES(self):
-        if len(self.lineEdit_key.text()) == 16 and\
-           len(self.lineEdit_plaintext.text()) == 16:
-            self.pushButton_encrypt.setEnabled(True)
-            if len(self.lineEdit_cyphertext.text()) != 0:
-                self.pushButton_3.setEnabled(True)
-                self.key = self.lineEdit_key.text().encode('latin-1')
-            else:
-                self.pushButton_3.setEnabled(False)
+        if len(self.lineEdit_key.text()) == 16:
+            if len(self.lineEdit_plaintext.text()) == 16:
+                self.pushButton_encrypt.setEnabled(True)
+                if len(self.lineEdit_cyphertext.text()) != 0:
+                    self.pushButton_3.setEnabled(True)
+                    self.key = self.lineEdit_key.text().encode('latin-1')
+                else:
+                    self.pushButton_3.setEnabled(False)
         else:
             self.pushButton_encrypt.setEnabled(False)
             self.pushButton_3.setEnabled(False)
@@ -335,8 +358,13 @@ class Ui_MainWindow(object):
             else:
                 self.pushButton_3.setEnabled(False)
         else:
+            if len(self.lineEdit_cyphertext.text()) != 0:
+                self.pushButton_3.setEnabled(True)
+                self.key = self.lineEdit_key.text().encode('latin-1')
+            else:
+                self.pushButton_3.setEnabled(False)
             self.pushButton_encrypt.setEnabled(False)
-            self.pushButton_3.setEnabled(False)
+            # self.pushButton_3.setEnabled(False)
 
     def cyphertextChangedAES(self):
         if len(self.lineEdit_cyphertext.text()) != 16:
